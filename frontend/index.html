@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Rubik's Cube Solver</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Notification Constraint Modal / Banner -->
+  <div id="constraint-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-icon-badge">⚠️</div>
+      <h3 id="modal-title">Constraint Violation</h3>
+      <p id="modal-message">A colour has exceeded the 9-sticker limit!</p>
+      <div class="modal-details" id="modal-details"></div>
+      <div class="modal-actions">
+        <button id="modal-balance-btn" class="btn btn-secondary">Auto-Balance (9 of each)</button>
+        <button id="modal-close-btn" class="btn btn-primary">Understood</button>
+      </div>
+    </div>
+  </div>
+
+  <header class="app-header">
+    <div class="header-content">
+      <div class="logo">
+        <span class="logo-icon">🧊</span>
+        <h1>Rubik's <span>3D</span> Solver</h1>
+      </div>
+      <div class="header-tags">
+        <span class="badge">Kociemba Algorithm</span>
+        <span class="badge">3D Interactive</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Left Column: 3D Viewport and Camera controls -->
+    <section class="viewport-section">
+      <div class="view-mode-bar">
+        <div class="toggle-group">
+          <button id="view-3d-btn" class="toggle-btn active">🧊 3D Cube View</button>
+          <button id="view-2d-btn" class="toggle-btn">🗺️ Unfolded Net</button>
+        </div>
+        <div class="camera-presets">
+          <button class="cam-btn" data-rot="iso" title="Isometric 3D">Isometric</button>
+          <button class="cam-btn" data-rot="U" title="Up face">U</button>
+          <button class="cam-btn" data-rot="F" title="Front face">F</button>
+          <button class="cam-btn" data-rot="R" title="Right face">R</button>
+          <button class="cam-btn" data-rot="B" title="Back face">B</button>
+          <button class="cam-btn" data-rot="L" title="Left face">L</button>
+          <button class="cam-btn" data-rot="D" title="Down face">D</button>
+          <button id="auto-spin-btn" class="cam-btn spin-btn" title="Toggle Auto-Spin">🔄 Spin</button>
+        </div>
+      </div>
+
+      <!-- 3D Scene Wrapper -->
+      <div id="scene-container" class="scene-container">
+        <div class="drag-hint">🖱️ Drag to rotate in 3D • Scroll wheel to zoom • Click sticker to paint</div>
+        
+        <!-- On-screen Camera Directional Controls -->
+        <div class="scene-controls-overlay">
+          <button id="cam-turn-up" class="nav-arrow nav-up" title="Tilt Up">▲</button>
+          <div class="nav-middle-row">
+            <button id="cam-turn-left" class="nav-arrow nav-left" title="Rotate Left">◀</button>
+            <button id="cam-reset" class="nav-arrow nav-center" title="Reset View">⊙</button>
+            <button id="cam-turn-right" class="nav-arrow nav-right" title="Rotate Right">▶</button>
+          </div>
+          <button id="cam-turn-down" class="nav-arrow nav-down" title="Tilt Down">▼</button>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="zoom-controls-overlay">
+          <button id="zoom-in-btn" class="zoom-btn" title="Zoom In">+</button>
+          <button id="zoom-out-btn" class="zoom-btn" title="Zoom Out">−</button>
+        </div>
+
+        <div class="cube-scene">
+          <div id="cube-3d" class="cube-3d">
+            <!-- Faces rendered by JS: U, D, F, B, L, R -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Optional 2D Net View -->
+      <div id="net-container" class="net-container hidden">
+        <div id="net-grid" class="net-grid">
+          <!-- 12x9 Unfolded Net rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Color Palette, Tracker, Controls, Output -->
+    <aside class="control-panel">
+      <!-- Colour Palette & Brush -->
+      <div class="panel-card">
+        <div class="card-header">
+          <h2>🎨 Colour Palette</h2>
+          <span class="sub-label">Select brush or click sticker to cycle</span>
+        </div>
+        <div class="palette-grid" id="palette-grid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Constraint Tracker -->
+      <div class="panel-card">
+        <div class="card-header">
+          <h2>📊 Sticker Constraints</h2>
+          <span class="constraint-info">Standard: <strong>9 cells</strong> per colour</span>
+        </div>
+        <div class="counter-list" id="counter-list">
+          <!-- Color counts updated dynamically -->
+        </div>
+      </div>
+
+      <!-- Actions & Randomizer -->
+      <div class="panel-card">
+        <div class="card-header">
+          <h2>⚡ Actions</h2>
+        </div>
+        <div class="action-buttons-grid">
+          <button id="btn-randomize" class="btn btn-warning" title="Randomize cube (strictly preserves 9 of each colour and unique centres)">
+            🎲 Randomize Cube
+          </button>
+          <button id="btn-shuffle-stickers" class="btn btn-accent" title="Shuffle stickers across faces (strictly 9 of each colour, unique centres)">
+            🔀 Shuffle Stickers (9x6)
+          </button>
+          <button id="btn-reset-solved" class="btn btn-secondary" title="Reset to solved state">
+            🔄 Reset Solved
+          </button>
+          <button id="btn-clear" class="btn btn-secondary" title="Clear all cells">
+            🧹 Clear All
+          </button>
+        </div>
+        
+        <button id="btn-solve" class="btn btn-solve">
+          <span class="btn-icon">⚡</span>
+          <span>Solve Cube</span>
+        </button>
+      </div>
+
+      <!-- Solution Output -->
+      <div class="panel-card solution-card">
+        <div class="card-header">
+          <h2>💡 Solution Output</h2>
+          <span id="solution-status" class="status-indicator ready">Ready</span>
+        </div>
+        <div id="solution-container" class="solution-container">
+          <div id="solution-placeholder" class="solution-placeholder">
+            Enter or randomize cube colors and press <strong>Solve Cube</strong>.
+          </div>
+          <div id="solution-results" class="solution-results hidden">
+            <div class="solution-meta">
+              <span class="meta-item">Total Moves: <strong id="total-steps">0</strong></span>
+            </div>
+            <div class="solution-box">
+              <label>Full Sequence:</label>
+              <div id="solution-moves" class="solution-moves"></div>
+              <button id="btn-copy-solution" class="btn btn-small">📋 Copy Moves</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
